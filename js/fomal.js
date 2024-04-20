@@ -1327,11 +1327,11 @@ var titleTime;
 document.addEventListener('visibilitychange', function () {
   if (document.hidden) {
     //离开当前页面时标签显示内容
-    document.title = '👀跑哪里去了~';
+    document.title = '┭┮﹏┭┮,网页突然崩溃了!!';
     clearTimeout(titleTime);
   } else {
     //返回当前页面时标签显示内容
-    document.title = '🐖抓到你啦～';
+    document.title = 'O(∩_∩)O,网页又好了';
     //两秒后变回正常标题
     titleTime = setTimeout(function () {
       document.title = OriginTitile;
@@ -3191,7 +3191,7 @@ function changeBg(s) {
   // 自定义颜色框
   defineColor = s.charAt(0) == "#" ? s : '#F4D88A';
   setBg(s);
-  // localStorage.setItem("blogbg", s);
+  localStorage.setItem("blogbg", s);
 }
 // 设置背景属性
 function setBg(s) {
