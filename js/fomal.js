@@ -3176,16 +3176,16 @@ let unsplash = "url(https://source.unsplash.com/random/1920x1080/)";
 
 
 // 更换背景(自己的代码)
-if (localStorage.getItem("blogbg") != undefined) {
-  setBg(localStorage.getItem("blogbg"));
-} else {
-  document.getElementById("defineBg").innerText = `:root{
-    --default-bg: url(http://img.netbian.com/file/2023/0725/2338370jUpW.jpg);
-    --darkmode-bg:url(https://pic.netbian.com/uploads/allimg/170729/172627-15013203874862.jpg);
-    --mobileday-bg: url(https://pic.netbian.com/uploads/allimg/240328/001426-17115560667587.jpg);
-    --mobilenight-bg: url(https://pic.netbian.com/uploads/allimg/240410/225722-1712761042102e.jpg);
-  }`;
-}
+// if (localStorage.getItem("blogbg") != undefined) {
+//   setBg(localStorage.getItem("blogbg"));
+// } else {
+// }
+document.getElementById("defineBg").innerText = `:root{
+  --default-bg: url(http://img.netbian.com/file/2023/0725/2338370jUpW.jpg);
+  --darkmode-bg:url(https://pic.netbian.com/uploads/allimg/170729/172627-15013203874862.jpg);
+  --mobileday-bg: url(https://pic.netbian.com/uploads/allimg/240328/001426-17115560667587.jpg);
+  --mobilenight-bg: url(https://pic.netbian.com/uploads/allimg/240410/225722-1712761042102e.jpg);
+}`
 // 切换背景主函数
 function changeBg(s) {
   // 自定义颜色框
