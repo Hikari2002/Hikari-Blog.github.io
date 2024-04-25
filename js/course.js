@@ -1,157 +1,154 @@
-//==========================================
-// File:    background.js
-// Title:   星空连线(鼠标跟随)
-// Auther:  XieNaoban
-// Version: v1.1
-// Note:    直接扔在<body>里
-//==========================================
-
-// 可调参数
-var BACKGROUND_COLOR = "rgba(0,43,54,1)";   // 背景色
-var POINT_NUM = 99;                         // 屏幕上点的数目
-var POINT_COLOR = "rgba(255,255,255,0.7)";  // 点的颜色
-var LINE_LENGTH = 10000;                    // 点之间连线长度(的平方)
-
-// 创建背景画布
-var cvs = document.createElement("canvas");
-cvs.width = window.innerWidth;
-cvs.height = window.innerHeight;
-cvs.style.cssText = "\
-    position:fixed;\
-    top:0px;\
-    left:0px;\
-    z-index:-1;\
-    opacity:1.0;\
-    ";
-document.body.appendChild(cvs);
-
-var ctx = cvs.getContext("2d");
-
-var startTime = new Date().getTime();
-
-//随机数函数
-function randomInt(min, max) {
-    return Math.floor((max - min + 1) * Math.random() + min);
-}
-
-function randomFloat(min, max) {
-    return (max - min) * Math.random() + min;
-}
-
-//构造点类
-function Point() {
-    this.x = randomFloat(0, cvs.width);
-    this.y = randomFloat(0, cvs.height);
-
-    var speed = randomFloat(0.3, 1.4);
-    var angle = randomFloat(0, 2 * Math.PI);
-
-    this.dx = Math.sin(angle) * speed;
-    this.dy = Math.cos(angle) * speed;
-
-    this.r = 1.2;
-
-    this.color = POINT_COLOR;
-}
-
-Point.prototype.move = function () {
-    this.x += this.dx;
-    if (this.x < 0) {
-        this.x = 0;
-        this.dx = -this.dx;
-    } else if (this.x > cvs.width) {
-        this.x = cvs.width;
-        this.dx = -this.dx;
+const canvas = document.getElementById('canvas')
+  const ctx = canvas.getContext('2d')
+  let width = window.innerWidth
+  let height = window.innerHeight
+ 
+  let dotsNum = 80 // 点的数量
+  let radius = 1 // 圆的半径，连接线宽度的一半
+  let fillStyle = 'rgba(255,255,255,0.5)' // 点的颜色
+  let lineWidth = radius * 2
+  let connection = 120 // 连线最大距离
+  let followLength = 80 // 鼠标跟随距离
+ 
+  let dots = []
+  let animationFrame = null
+  let mouseX = null
+  let mouseY = null
+ 
+  function addCanvasSize () { // 改变画布尺寸
+    width = window.innerWidth
+    height = window.innerHeight
+    canvas.width = width
+    canvas.height = height
+    ctx.clearRect(0, 0, width, height)
+    dots = []
+    if (animationFrame) window.cancelAnimationFrame(animationFrame)
+    initDots(dotsNum)
+    moveDots()
+  }
+ 
+  function mouseMove (e) {
+    mouseX = e.clientX
+    mouseY = e.clientY
+  }
+ 
+  function mouseOut (e) {
+    mouseX = null
+    mouseY = null
+  }
+ 
+  function mouseClick () {
+    for (const dot of dots) dot.elastic()
+  }
+ 
+  class Dot {
+    constructor(x, y) {
+      this.x = x
+      this.y = y
+      this.speedX = Math.random() * 2 - 1
+      this.speedY = Math.random() * 2 - 1
+      this.follow = false
     }
-    this.y += this.dy;
-    if (this.y < 0) {
-        this.y = 0;
-        this.dy = -this.dy;
-    } else if (this.y > cvs.height) {
-        this.y = cvs.height;
-        this.dy = -this.dy;
+    draw () {
+      ctx.beginPath()
+      ctx.arc(this.x, this.y, radius, 0, 2 * Math.PI)
+      ctx.fill()
+      ctx.closePath()
     }
-}
-
-Point.prototype.draw = function () {
-    ctx.fillStyle = this.color;
-    ctx.beginPath();
-    ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
-    ctx.closePath();
-    ctx.fill();
-}
-
-var points = [];
-
-function initPoints(num) {
-    for (var i = 0; i < num; ++i) {
-        points.push(new Point());
+    move () {
+      if (this.x >= width || this.x <= 0) this.speedX = -this.speedX
+      if (this.y >= height || this.y <= 0) this.speedY = -this.speedY
+      this.x += this.speedX
+      this.y += this.speedY
+      if (this.speedX >= 1) this.speedX--
+      if (this.speedX <= -1) this.speedX++
+      if (this.speedY >= 1) this.speedY--
+      if (this.speedY <= -1) this.speedY++
+      this.correct()
+      this.connectMouse()
+      this.draw()
     }
-}
-
-var p0 = new Point(); //鼠标
-p0.dx = p0.dy = 0;
-var degree = 2.5;
-document.onmousemove = function (ev) {
-    p0.x = ev.clientX;
-    p0.y = ev.clientY;
-}
-document.onmousedown = function (ev) {
-    degree = 5.0;
-    p0.x = ev.clientX;
-    p0.y = ev.clientY;
-}
-document.onmouseup = function (ev) {
-    degree = 2.5;
-    p0.x = ev.clientX;
-    p0.y = ev.clientY;
-}
-window.onmouseout = function () {
-    p0.x = null;
-    p0.y = null;
-}
-
-function drawLine(p1, p2, deg) {
-    var dx = p1.x - p2.x;
-    var dy = p1.y - p2.y;
-    var dis2 = dx * dx + dy * dy;
-    if (dis2 < 2 * LINE_LENGTH) {
-        if (dis2 > LINE_LENGTH) {
-            if (p1 === p0) {
-                p2.x += dx * 0.03;
-                p2.y += dy * 0.03;
-            } else return;
+    correct () { // 根据鼠标的位置修正
+      if (!mouseX || !mouseY) return
+      let lengthX = mouseX - this.x
+      let lengthY = mouseY - this.y
+      const distance = Math.sqrt(lengthX ** 2 + lengthY ** 2)
+      if (distance <= followLength) this.follow = true
+      else if (this.follow === true && distance > followLength && distance <= followLength + 8) {
+        let proportion = followLength / distance
+        lengthX *= proportion
+        lengthY *= proportion
+        this.x = mouseX - lengthX
+        this.y = mouseY - lengthY
+      } else this.follow = false
+    }
+    connectMouse () { // 点与鼠标连线
+      if (mouseX && mouseY) {
+        let lengthX = mouseX - this.x
+        let lengthY = mouseY - this.y
+        const distance = Math.sqrt(lengthX ** 2 + lengthY ** 2)
+        if (distance <= connection) {
+          opacity = (1 - distance / connection) * 0.5
+          ctx.strokeStyle = `rgba(255,255,255,${opacity})`
+          ctx.beginPath()
+          ctx.moveTo(this.x, this.y)
+          ctx.lineTo(mouseX, mouseY);
+          ctx.stroke();
+          ctx.closePath()
         }
-        var t = (1.05 - dis2 / LINE_LENGTH) * 0.2 * deg;
-        ctx.strokeStyle = "rgba(255,255,255," + t + ")";
-        ctx.beginPath();
-        ctx.lineWidth = 1.5;
-        ctx.moveTo(p1.x, p1.y);
-        ctx.lineTo(p2.x, p2.y);
-        ctx.closePath();
-        ctx.stroke();
+      }
     }
-    return;
-}
-
-//绘制每一帧
-function drawFrame() {
-    cvs.width = window.innerWidth;
-    cvs.height = window.innerHeight;
-    ctx.fillStyle = BACKGROUND_COLOR;
-    ctx.fillRect(0, 0, cvs.width, cvs.height);
-
-    var arr = (p0.x == null ? points : [p0].concat(points));
-    for (var i = 0; i < arr.length; ++i) {
-        for (var j = i + 1; j < arr.length; ++j) {
-            drawLine(arr[i], arr[j], 1.0);
+    elastic () { // 鼠标点击后的弹射
+      let lengthX = mouseX - this.x
+      let lengthY = mouseY - this.y
+      const distance = Math.sqrt(lengthX ** 2 + lengthY ** 2)
+      if (distance >= connection) return
+      const rate = 1 - distance / connection // 距离越小此值约接近1
+      this.speedX = 40 * rate * -lengthX / distance
+      this.speedY = 40 * rate * -lengthY / distance
+    }
+  }
+ 
+  function initDots (num) { // 初始化粒子
+    ctx.fillStyle = fillStyle
+    ctx.lineWidth = lineWidth
+    for (let i = 0; i < num; i++) {
+      const x = Math.floor(Math.random() * width)
+      const y = Math.floor(Math.random() * height)
+      const dot = new Dot(x, y)
+      dot.draw()
+      dots.push(dot)
+    }
+  }
+ 
+  function moveDots () { // 移动并建立点与点之间的连接线
+    ctx.clearRect(0, 0, width, height)
+    for (const dot of dots) {
+      dot.move()
+    }
+    for (let i = 0; i < dots.length; i++) {
+      for (let j = i; j < dots.length; j++) {
+        const distance = Math.sqrt((dots[i].x - dots[j].x) ** 2 + (dots[i].y - dots[j].y) ** 2)
+        if (distance <= connection) {
+          opacity = (1 - distance / connection) * 0.5
+          ctx.strokeStyle = `rgba(255,255,255,${opacity})`
+          ctx.beginPath()
+          ctx.moveTo(dots[i].x, dots[i].y)
+          ctx.lineTo(dots[j].x, dots[j].y);
+          ctx.stroke();
+          ctx.closePath()
         }
-        arr[i].draw();
-        arr[i].move();
+      }
     }
-
-    window.requestAnimationFrame(drawFrame);
-}
-
-initPoints(POINT_NUM);
-drawFrame();
+    animationFrame = window.requestAnimationFrame(moveDots)
+  }
+ 
+  addCanvasSize()
+ 
+  initDots(dotsNum)
+  moveDots()
+ 
+  document.onmousemove = mouseMove
+  document.onmouseout = mouseOut
+  document.onclick = mouseClick
+  window.onresize = addCanvasSize
